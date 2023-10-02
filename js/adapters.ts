@@ -96,11 +96,17 @@ type Cancelable = {
   cancel: () => void;
 };
 
+type ProtocolOptions = {
+  metadata?: boolean;
+};
+
 export class Protocol {
   tiles: Map<string, PMTiles>;
+  options: ProtocolOptions;
 
-  constructor() {
+  constructor(options: ProtocolOptions = {}) {
     this.tiles = new Map<string, PMTiles>();
+    this.options = options;
   }
 
   add(p: PMTiles) {
@@ -123,10 +129,13 @@ export class Protocol {
         this.tiles.set(pmtiles_url, instance);
       }
 
-      instance
-        .getHeader()
-        .then((h) => {
+      Promise.all([
+        instance.getHeader(),
+        this.options.metadata ? instance.getMetadata() : {},
+      ])
+        .then(([h, m]) => {
           const tilejson = {
+            ...m,
             tiles: [params.url + "/{z}/{x}/{y}"],
             minzoom: h.minZoom,
             maxzoom: h.maxZoom,
